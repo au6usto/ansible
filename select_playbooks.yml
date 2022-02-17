@@ -1,0 +1,93 @@
+--- 
+## See 
+## https://docs.ansible.com/ansible/latest/plugins/lookup/vars.html
+## https://docs.ansible.com/ansible/latest/reference_appendices/faq.html#when-should-i-use-also-how-to-interpolate-variables-or-dynamic-variable-names
+- name: select
+  gather_facts: false
+  hosts: localhost
+  connection: local 
+
+  vars:
+  - users:
+    - name: testuser1
+      uid: 1002
+      groups: 
+        - wheel
+        - staff 
+      config:
+        - home: "~"
+        - temp: "~/temp"     
+  
+    - name: testuser2 
+      uid: 1003 
+      groups: 
+        - staff
+      config:
+        - home: "/home/adriaan/"
+        - temp: "/tmp/"     
+  - select_name:
+    - "testuser1"       
+
+  tasks:
+    - name: list users
+      debug:
+        msg: "users are: {{users}} "
+
+    - name: get the first user
+      debug:
+        msg: "first user is: {{users[0]}} "
+
+    - name: or get the first user like this
+      debug:
+        msg: "first user is: {{users | first}} "
+
+    - name: get the first user name
+      debug:
+        msg: "and the name is : {{users[0].name}} "
+
+    - name: select matched users with simple filter
+      debug:
+        msg: "user data is:  {{ users|  selectattr('name', 'match', 'testuser1') | list}}"
+
+    - name: select users with simple filter  )
+      debug:
+        msg: "user data is:  {{ users|  selectattr('name', 'match', 'testuser') | list }}"
+
+    - name: select users with 'equalto' result is generator with one item )
+      debug:
+        msg: "user data is:  {{ users|  selectattr('name', 'equalto', 'testuser1')}}"        
+
+    - name: so we need to get the first
+      debug:
+        msg: "user data is:  {{ users|  selectattr('name', 'equalto', 'testuser1') | first}}"        
+
+    - name: select users with a variable unfortunately ansible doesn't allow nesting 
+      debug:
+        msg: "user data is:  {{ users|  selectattr('name', 'match', {{select-name}}) | list }}"
+      ignore_errors: yes 
+
+    - name: so we need a to use look up
+      debug: msg="{{ lookup('vars', myvar)}}"
+      vars:
+        myvar: select_name
+
+    - name: result is a list get the first 
+      debug: msg="{{ lookup('vars', myvar) | first}}"
+      vars:
+        myvar: select_name
+      
+    - name: all together
+      debug:
+        msg:  "user data is:  {{ users|  selectattr('name', 'equalto', lookup('vars', myvar) | first) | first }} "
+      vars:
+        myvar: select_name 
+
+    - name: put it in a fact 
+      set_fact:
+        first_user: "{{ users|  selectattr('name', 'match', lookup('vars', myvar) | first) | first }}"  
+      vars:
+        myvar: select_name       
+
+    - name: use it
+      debug:
+        msg: "{{ first_user }}"

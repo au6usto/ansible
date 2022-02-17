@@ -1,0 +1,19 @@
+--- 
+- name: select
+  gather_facts: false
+  hosts: localhost
+  connection: local 
+
+  vars:
+  - my_selector:
+    - "the_value_to_select"   
+
+  tasks:
+    - name: use it
+      debug:
+        msg: "{{ first_user }}"
+    - name: put it in a fact 
+      set_fact:
+        my_fact: "{{ the_list|  selectattr('attribute_name', 'match', lookup('vars', myvar) | first) | first }}"  
+        vars:
+        my_var: selector  
